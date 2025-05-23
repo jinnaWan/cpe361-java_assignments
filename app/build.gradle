@@ -1,0 +1,79 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Keep your existing dependencies
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation libs.guava
+    
+    // Add explicit JavaFX dependencies for the fat JAR
+    implementation "org.openjfx:javafx-controls:23.0.2:win"
+    implementation "org.openjfx:javafx-fxml:23.0.2:win"
+}
+
+// Apply a specific Java toolchain
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+application {
+    // Define the main class for the application
+    mainClass = 'fxapp.Launcher'
+}
+
+javafx {
+    version = "23.0.2"
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Create a special launcher class
+task createLauncher {
+    doLast {
+        def launcherFile = new File("${projectDir}/src/main/java/fxapp/Launcher.java")
+        launcherFile.parentFile.mkdirs()
+        
+        launcherFile.text = """
+package fxapp;
+
+public class Launcher {
+    public static void main(String[] args) {
+        App.main(args);
+    }
+}
+"""
+    }
+}
+
+// Make compileJava depend on createLauncher
+compileJava.dependsOn createLauncher
+
+// Configure the jar task
+jar {
+    manifest {
+        attributes 'Main-Class': 'fxapp.Launcher'
+    }
+}
+
+// Configure the shadowJar task
+shadowJar {
+    archiveBaseName.set('StudentSorter')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+    
+    // Handle module path issues
+    mergeServiceFiles()
+}
